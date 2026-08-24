@@ -18,7 +18,7 @@
         dest: /etc/dhcp/dhcpd.conf
       notify: restart dhcp
 
-    - name: 指定 DHCP 监听管理网口 (e0=eth0)
+    - name: 指定 DHCP 监听管理网口 (EVE-NG e0 = ens3)
       lineinfile:
         path: /etc/default/isc-dhcp-server
         regexp: '^INTERFACESv4='
