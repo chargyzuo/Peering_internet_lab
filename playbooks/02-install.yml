@@ -49,9 +49,16 @@
         echo "deb [signed-by=/usr/share/keyrings/nlnetlabs.gpg] https://packages.nlnetlabs.nl/linux/debian $(lsb_release -sc) main" > /etc/apt/sources.list.d/nlnetlabs.list
       args: { creates: /etc/apt/sources.list.d/nlnetlabs.list }
     - apt: { name: routinator, update_cache: true }
-    - name: 初始化 TAL(接受 RIR RPA)
-      command: routinator-init --accept-arin-rpa
-      args: { creates: /etc/routinator/tals }
+    # Routinator >=0.9 已把 5 个 RIR 的 TAL(含 ARIN)编译进二进制、默认加载，
+    # 旧版的 `routinator-init/init --accept-arin-rpa` 在 0.15 已移除，无需再初始化 TAL。
+    # 首次拉取并验证 RPKI 数据，填充 server 实际读的缓存(/var/lib/routinator/rpki-cache)。
+    # 注意：必须带 -c 用包配置(否则 root 身份会去填 /root/.rpki-cache)，且以 routinator 用户跑
+    # 让缓存文件 owner 与 server 进程一致；update 可反复执行(增量)，靠 changed_when:false 保持幂等，
+    # 不用 creates: —— 三个子目录装包时就存在，用它当 guard 会导致此步被永久跳过。
+    - name: 首次拉取 RPKI 缓存(用包配置，填 server 实际读的缓存)
+      command: routinator -c /etc/routinator/routinator.conf update
+      become_user: routinator
+      changed_when: false
 
 - name: NetFlow 采集器安装
   hosts: netflow
