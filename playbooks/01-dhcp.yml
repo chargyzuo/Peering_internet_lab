@@ -5,6 +5,18 @@
   connection: local
   become: true
   tasks:
+    - name: 停用 Kea（若存在），避免抢占 UDP/67 与 isc-dhcp-server 冲突
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop:
+        - kea-dhcp4-server
+        - kea-dhcp4
+        - kea-dhcp-ddns-server
+        - kea-ctrl-agent
+      failed_when: false
+
     - name: 安装 isc-dhcp-server
       apt:
         name: isc-dhcp-server
