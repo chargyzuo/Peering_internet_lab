@@ -2,6 +2,11 @@ default-lease-time 86400;
 max-lease-time 172800;
 authoritative;
 
+# EVE-NG 克隆节点共享 /etc/machine-id → systemd-networkd 生成的 DHCP client-id(option 61) 相同，
+# dhcpd 默认按 client-id 记账会误判冲突而拒发地址。下面一行让 dhcpd 忽略 client-id、只按 MAC 匹配，
+# 与本文件 host{...} 的 MAC 绑定一致。
+ignore-client-uids true;
+
 subnet {{ mgmt_net }} netmask {{ mgmt_mask }} {
   option routers {{ mgmt_gw }};
   option domain-name-servers {{ mgmt_dns }};

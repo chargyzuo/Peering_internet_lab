@@ -1,5 +1,17 @@
 ---
 # 02-install.yml —— 各角色装组件（幂等，Debian 13 用 signed-by keyring）
+- name: 设置主机名（按 inventory 名，避免所有节点都叫 debian）
+  hosts: linux
+  become: true
+  tasks:
+    - name: hostnamectl set-hostname = inventory 名
+      hostname: { name: "{{ inventory_hostname }}" }
+    - name: 同步 /etc/hosts 里的 127.0.1.1 记录
+      lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1\s'
+        line: "127.0.1.1 {{ inventory_hostname }}"
+
 - name: FRR 组安装 (RR/上游/eyeball/CDN)
   hosts: frr
   become: true
