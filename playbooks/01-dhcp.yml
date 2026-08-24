@@ -5,6 +5,13 @@
   connection: local
   become: true
   tasks:
+    - name: 安装 isc-dhcp-server
+      apt:
+        name: isc-dhcp-server
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
     - name: 渲染 dhcpd.conf
       template:
         src: ../templates/dhcpd.conf.j2
@@ -15,7 +22,7 @@
       lineinfile:
         path: /etc/default/isc-dhcp-server
         regexp: '^INTERFACESv4='
-        line: 'INTERFACESv4="eth0"'
+        line: 'INTERFACESv4="ens3"'
       notify: restart dhcp
 
   handlers:
