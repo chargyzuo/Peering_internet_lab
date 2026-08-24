@@ -12,6 +12,15 @@
         update_cache: true
         cache_valid_time: 3600
 
+    - name: 确保 leases 文件存在（dhcpd 启动前置，缺失会直接退出）
+      copy:
+        content: ""
+        dest: /var/lib/dhcp/dhcpd.leases
+        force: false
+        owner: root
+        group: root
+        mode: "0644"
+
     - name: 渲染 dhcpd.conf
       template:
         src: ../templates/dhcpd.conf.j2
