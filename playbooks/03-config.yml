@@ -1,0 +1,82 @@
+---
+# 03-config.yml —— 模板渲染 + 幂等下发（对应 2.1 §3-§六 / 2.2 §三.3）
+- name: 下发 FRR RR 配置
+  hosts: rr1,rr2
+  become: true
+  tasks:
+    - name: 渲染 frr.conf (RR)
+      template:
+        src: ../templates/frr_rr.conf.j2
+        dest: /etc/frr/frr.conf
+        owner: frr
+        group: frr
+      notify: reload frr
+  handlers:
+    - name: reload frr
+      command: /usr/lib/frr/frr-reload.py --reload /etc/frr/frr.conf
+
+- name: 下发 FRR 外部对端配置 (Transit/Eyeball/CDN)
+  hosts: transit1,transit2,eyeballA,eyeballC,cdn
+  become: true
+  tasks:
+    - name: 渲染 frr.conf (peer)
+      template:
+        src: ../templates/frr_peer.conf.j2
+        dest: /etc/frr/frr.conf
+        owner: frr
+        group: frr
+      notify: reload frr
+  handlers:
+    - name: reload frr
+      command: /usr/lib/frr/frr-reload.py --reload /etc/frr/frr.conf
+
+- name: 下发 BIRD(RS) 配置
+  hosts: bird
+  become: true
+  tasks:
+    - template: { src: ../templates/bird_rs.conf.j2, dest: /etc/bird/bird.conf }
+      notify: reconfigure bird
+  handlers:
+    - name: reconfigure bird
+      command: birdc configure
+
+- name: 下发 Routinator SLURM(本地 ROA)
+  hosts: rpki
+  become: true
+  tasks:
+    - template: { src: ../templates/slurm.json.j2, dest: /etc/routinator/slurm.json }
+    - lineinfile:
+        path: /etc/routinator/routinator.conf
+        line: 'rtr-listen = ["0.0.0.0:3323"]'
+        create: true
+      notify: restart routinator
+  handlers:
+    - name: restart routinator
+      service: { name: routinator, state: restarted, enabled: true }
+
+- name: 下发 BR(XRv9k) 配置 —— 先策略后主体
+  hosts: xr
+  gather_facts: false
+  tasks:
+    - name: 渲染 route-policy 集到本地
+      template:
+        src: ../templates/xr_policy.conf.j2
+        dest: "/tmp/xr_policy_{{ inventory_hostname }}.conf"
+      delegate_to: localhost
+
+    - name: 渲染 BR 主体配置到本地
+      template:
+        src: "../templates/xr_{{ inventory_hostname }}.conf.j2"
+        dest: "/tmp/xr_{{ inventory_hostname }}.conf"
+      delegate_to: localhost
+
+    - name: 合并下发 route-policy 集
+      cisco.iosxr.iosxr_config:
+        src: "/tmp/xr_policy_{{ inventory_hostname }}.conf"
+
+    - name: 合并下发 BR 主体 (IS-IS+iBGP+边界+RPKI+uRPF)
+      cisco.iosxr.iosxr_config:
+        src: "/tmp/xr_{{ inventory_hostname }}.conf"
+      register: xr_res
+
+    - debug: { var: xr_res.commands }

@@ -1,0 +1,11 @@
+{
+  "slurmVersion": 1,
+  "validationOutputFilters": { "prefixFilters": [], "bgpsecFilters": [] },
+  "locallyAddedAssertions": {
+    "prefixAssertions": [
+      { "asn": {{ my_asn }}, "prefix": "{{ my_prefix }}", "maxPrefixLength": 24,
+        "comment": "AS64496 合法宣告，maxLen 24 用于 TE 拆 /24" }
+    ],
+    "bgpsecAssertions": []
+  }
+}

@@ -1,0 +1,6 @@
+---
+# site.yml —— 一键拉起整套（顺序不能乱），对应 2.2 §三.4
+- import_playbook: playbooks/01-dhcp.yml       # 先给 IP
+- import_playbook: playbooks/02-install.yml    # 再装组件
+- import_playbook: playbooks/03-config.yml     # 再下发配置
+- import_playbook: playbooks/04-verify.yml     # 最后断言

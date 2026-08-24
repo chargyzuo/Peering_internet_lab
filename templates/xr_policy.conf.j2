@@ -1,0 +1,49 @@
+! ============================================================
+! BR 通用 route-policy 集（对应 2.1 §四 三类边界策略 + §五 RPKI + §六 MANRS）
+! br1/br2 共用，先于 xr_brX 下发；变量取自 group_vars/all.yml
+! ============================================================
+!
+community-set FROM-TRANSIT  {{ my_asn }}:100  end-set
+community-set FROM-IX       {{ my_asn }}:150  end-set
+community-set FROM-PNI      {{ my_asn }}:200  end-set
+community-set NO-TRANSIT    {{ my_asn }}:990  end-set
+!
+! ---- Transit：付费全表兜底，LP 最低 ----
+route-policy TRANSIT-IN
+  if destination in BOGONS then drop endif
+  if validation-state is invalid then drop endif        ! RPKI ROV
+  set community ({{ my_asn }}:100)
+  set local-preference 80
+  pass
+end-policy
+!
+route-policy TRANSIT-OUT
+  if community matches-any NO-TRANSIT then drop endif    ! 标了"别给transit"的不发
+  if destination in MY-PREFIXES then pass endif          ! 只发自己的前缀
+  drop                                                   ! 绝不向 transit 转发别人的
+end-policy
+!
+! ---- IX Peering：multilateral，LP 中 ----
+route-policy PEER-IN
+  if destination in BOGONS then drop endif
+  if validation-state is invalid then drop endif
+  if as-path passes-through '{{ transit1_asn }}' then drop endif   ! peer 带 transit ASN → 泄漏
+  set community ({{ my_asn }}:150)
+  set local-preference 150
+  pass
+end-policy
+!
+route-policy PEER-OUT
+  if destination in MY-PREFIXES then pass endif
+  drop                                                   ! 只发自己，不当中转
+end-policy
+!
+! ---- PNI：大流量私连，LP 最高 ----
+route-policy PNI-IN
+  if destination in BOGONS then drop endif
+  if validation-state is invalid then drop endif
+  set community ({{ my_asn }}:200)
+  set local-preference 200
+  pass
+end-policy
+!

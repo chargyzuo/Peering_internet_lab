@@ -1,0 +1,61 @@
+# group_vars/all.yml —— 唯一事实源（Single Source of Truth）
+# 对应 2.1 §3.1 编址表 + 2.2 §一 MAC 表 / §三.1 DHCP 表。改编址/策略只动这里。
+
+# ===== AS / 前缀 =====
+my_asn: 64496
+my_prefix: "<你的 /20，见 2.1 §3.1 宣告前缀>"
+
+# ===== 核心 loopback（BR/RR），2.1 §3.1/§3.3 =====
+lo:
+  br1: 100.64.255.1
+  br2: 100.64.255.2
+  rr1: 100.64.255.11
+  rr2: 100.64.255.12
+
+# ===== IS-IS =====
+isis_area: "49.0001"
+
+# ===== RPKI（Routinator 管理 IP = §三.1 Routinator 的 IP）=====
+rpki_rtr_host: 10.99.99.110
+rpki_rtr_port: 3323
+
+# ===== 管理网（2.1 §3.1 + 2.2 §二.1）=====
+mgmt_net: "<管理网段，如 x.x.x.0>"
+mgmt_mask: 255.255.255.0
+mgmt_gw:  10.99.99.1
+mgmt_dns: 223.5.5.5
+
+# ===== DHCP MAC→固定IP 绑定（2.2 §一 + §三.1，与 inventory/hosts.ini 一一对应）=====
+dhcp_hosts:
+  - { name: Transit-1,     mac: "00:50:00:00:03:00",  ip: "10.99.99.101" }
+  - { name: Transit-2,     mac: "00:50:00:00:04:00",  ip: "10.99.99.102" }
+  - { name: RR1,           mac: "00:50:00:00:05:00",  ip: "10.99.99.103" }
+  - { name: RR2,           mac: "00:50:00:00:06:00",  ip: "10.99.99.104" }
+  - { name: CDN,           mac: "00:50:00:00:07:00",  ip: "10.99.99.105" }
+  - { name: Eyeball-C,     mac: "00:50:00:00:08:00",  ip: "10.99.99.106" }
+  - { name: Eyeball-A,     mac: "00:50:00:00:09:00",  ip: "10.99.99.107" }
+  - { name: router_server, mac: "00:50:00:00:0a:00",  ip: "10.99.99.108" }
+  - { name: Eyeball-B,     mac: "00:50:00:00:0b:00", ip: "10.99.99.109" }
+  - { name: Routinator,    mac: "00:50:00:00:0c:00", ip: "10.99.99.110" }
+  - { name: Netflow,       mac: "00:50:00:00:0d:00", ip: "10.99.99.111" }
+
+# ===== 外部 ASN（2.1 §一 AS 角色表）=====
+transit1_asn: 64500
+transit2_asn: 64501
+eyeballA_asn: 64510
+eyeballC_asn: 64511
+eyeballB_asn: 64520
+cdn_asn:      64521
+rs_asn:       65000
+
+# ===== eBGP 对接链路 IP（2.1 §3.1 / 逐链路接线表 L5/L6/L12/L13）=====
+# REPLACE_* 按 2.1 §3.1 的 /30、/24 网段填成对端与本端地址
+transit_as64500_peer: "REPLACE_TRANSIT1_PEER_IP"    # BR1↔Transit-1 对端 (L5, /30)
+transit_as64501_peer: "REPLACE_TRANSIT2_PEER_IP"    # BR2↔Transit-2 对端 (L6, /30)
+pni_eyeballA_peer:    "REPLACE_PNI_A_PEER_IP"        # BR1↔Eyeball-A 对端 (L12, /30)
+pni_eyeballC_peer:    "REPLACE_PNI_C_PEER_IP"        # BR2↔Eyeball-C 对端 (L13, /30)
+
+# ===== IX peering LAN（2.1 §3.1: RS=.1 BR1=.10 BR2=.11 EyeballB=.20 CDN=.21）=====
+ix_rs_ip:  "REPLACE_IX_RS_IP"      # Route-Server (.1)
+ix_br1_ip: "REPLACE_IX_BR1_IP"     # BR1 in IX (.10)
+ix_br2_ip: "REPLACE_IX_BR2_IP"     # BR2 in IX (.11)

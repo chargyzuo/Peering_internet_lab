@@ -1,0 +1,90 @@
+! ============================================================
+! BR1 (PoP-A) —— Cisco IOS-XRv9k 配置片段（对应 2.1 §3-§六）
+! 接 Transit-1(AS64500) + IX + PNI主(Eyeball-A)
+! 由 03-config.yml 经 cisco.iosxr.iosxr_config 合并下发
+! ============================================================
+!
+! ---- Loopback / IS-IS 核心 ----
+interface Loopback0
+ ipv4 address {{ lo.br1 }} 255.255.255.255
+!
+router isis CORE
+ is-type level-2-only
+ net {{ isis_area }}.0100.6425.5001.00
+ address-family ipv4 unicast
+  metric-style wide
+ interface Loopback0
+  passive
+  address-family ipv4 unicast
+ interface GigabitEthernet0/0/0/1
+  point-to-point
+  address-family ipv4 unicast
+ interface GigabitEthernet0/0/0/2
+  point-to-point
+  address-family ipv4 unicast
+!
+! ---- prefix-set / community 定义 (MANRS Filtering) ----
+prefix-set MY-PREFIXES
+  {{ my_prefix }} le 24
+end-set
+!
+prefix-set BOGONS
+  0.0.0.0/8 le 32, 10.0.0.0/8 le 32, 127.0.0.0/8 le 32,
+  169.254.0.0/16 le 32, 172.16.0.0/12 le 32, 192.168.0.0/16 le 32,
+  224.0.0.0/3 le 32
+end-set
+!
+! ---- RPKI ----
+router bgp {{ my_asn }}
+ rpki server {{ rpki_rtr_host }}
+  transport tcp port {{ rpki_rtr_port }}
+  refresh-time 120
+ !
+ bgp router-id {{ lo.br1 }}
+ address-family ipv4 unicast
+  bgp origin-as validation enable
+  network {{ my_prefix }}
+ !
+ ! ---- iBGP 到两台 RR ----
+ neighbor {{ lo.rr1 }}
+  remote-as {{ my_asn }}
+  update-source Loopback0
+  address-family ipv4 unicast
+   next-hop-self
+ !
+ neighbor {{ lo.rr2 }}
+  remote-as {{ my_asn }}
+  update-source Loopback0
+  address-family ipv4 unicast
+   next-hop-self
+ !
+ ! ---- eBGP: Transit-1 (AS64500) ----
+ neighbor {{ transit_as64500_peer }}
+  remote-as {{ transit1_asn }}
+  address-family ipv4 unicast
+   route-policy TRANSIT-IN in
+   route-policy TRANSIT-OUT out
+   next-hop-self
+   maximum-prefix 1000000 90 restart 30
+ !
+ ! ---- eBGP: PNI 主 Eyeball-A (AS64510) ----
+ neighbor {{ pni_eyeballA_peer }}
+  remote-as {{ eyeballA_asn }}
+  address-family ipv4 unicast
+   route-policy PNI-IN in
+   route-policy PEER-OUT out
+   next-hop-self
+ !
+ ! ---- eBGP: IX Route-Server (AS65000) ----
+ neighbor {{ ix_rs_ip }}
+  remote-as {{ rs_asn }}
+  address-family ipv4 unicast
+   route-policy PEER-IN in
+   route-policy PEER-OUT out
+!
+! ---- uRPF (MANRS Anti-spoofing) 边界口 ----
+interface GigabitEthernet0/0/0/0
+ ipv4 verify unicast source reachable-via any
+interface GigabitEthernet0/0/0/4
+ ipv4 verify unicast source reachable-via any
+!

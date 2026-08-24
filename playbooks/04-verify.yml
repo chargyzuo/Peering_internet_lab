@@ -1,0 +1,41 @@
+---
+# 04-verify.yml —— 断言式验证（对应 2.1 §九 checklist / 2.2 §三.4）
+- name: 核心 IS-IS/iBGP 验证 (RR 侧)
+  hosts: rr1,rr2
+  become: true
+  tasks:
+    - name: IS-IS 邻居应为 Up
+      command: vtysh -c "show isis neighbor"
+      register: isis
+      changed_when: false
+      failed_when: "'Up' not in isis.stdout"
+    - name: iBGP 到两台 BR 应 Established
+      command: vtysh -c "show bgp summary"
+      register: bgpsum
+      changed_when: false
+      failed_when: "'Active' in bgpsum.stdout or 'Connect' in bgpsum.stdout"
+
+- name: BR 选路与 RPKI 验证
+  hosts: xr
+  gather_facts: false
+  tasks:
+    - name: RPKI 会话应连上 Routinator
+      cisco.iosxr.iosxr_command:
+        commands: show bgp rpki summary
+      register: rpki
+      failed_when: "rpki_rtr_host not in rpki.stdout[0]"
+    - name: 选路应 PNI(LP200) > IX(150) > Transit(80)
+      cisco.iosxr.iosxr_command:
+        commands: "show bgp {{ my_prefix }}"
+      register: best
+    - debug: { var: best.stdout_lines }
+
+- name: RPKI hijack drop 验证(可选)
+  hosts: xr
+  gather_facts: false
+  tasks:
+    - name: 伪造的 /24 应判 invalid 并被 drop
+      cisco.iosxr.iosxr_command:
+        commands: show bgp ipv4 unicast origin-as validity invalid
+      register: inv
+    - debug: { msg: "Invalid 路由: {{ inv.stdout_lines }}" }

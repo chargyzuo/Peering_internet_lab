@@ -1,0 +1,23 @@
+---
+# 01-dhcp.yml —— 控制节点起 DHCP，MAC 绑定固定 IP（对应 2.2 §三.1）
+- name: 配置管理网 DHCP（MAC 绑定固定 IP）
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: 渲染 dhcpd.conf
+      template:
+        src: ../templates/dhcpd.conf.j2
+        dest: /etc/dhcp/dhcpd.conf
+      notify: restart dhcp
+
+    - name: 指定 DHCP 监听管理网口 (e0=eth0)
+      lineinfile:
+        path: /etc/default/isc-dhcp-server
+        regexp: '^INTERFACESv4='
+        line: 'INTERFACESv4="eth0"'
+      notify: restart dhcp
+
+  handlers:
+    - name: restart dhcp
+      service: { name: isc-dhcp-server, state: restarted, enabled: true }

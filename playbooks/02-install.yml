@@ -1,0 +1,48 @@
+---
+# 02-install.yml —— 各角色装组件（幂等，Debian 13 用 signed-by keyring）
+- name: FRR 组安装 (RR/上游/eyeball/CDN)
+  hosts: frr
+  become: true
+  tasks:
+    - apt: { name: [curl, gnupg, lsb-release], update_cache: true }
+    - name: 加 FRR 官方源 (signed-by)
+      shell: |
+        curl -fsSL https://deb.frrouting.org/frr/keys.gpg -o /usr/share/keyrings/frrouting.gpg
+        echo "deb [signed-by=/usr/share/keyrings/frrouting.gpg] https://deb.frrouting.org/frr $(lsb_release -sc) frr-stable" > /etc/apt/sources.list.d/frr.list
+      args: { creates: /etc/apt/sources.list.d/frr.list }
+    - apt: { name: [frr, frr-pythontools], update_cache: true }
+    - name: 打开 bgpd + isisd
+      replace: { path: /etc/frr/daemons, regexp: '^{{ item }}=no', replace: '{{ item }}=yes' }
+      loop: [bgpd, isisd]
+      notify: restart frr
+    - sysctl: { name: net.ipv4.ip_forward, value: '1', sysctl_set: true }
+  handlers:
+    - name: restart frr
+      service: { name: frr, state: restarted, enabled: true }
+
+- name: BIRD(RS) 安装
+  hosts: bird
+  become: true
+  tasks:
+    - apt: { name: bird2, update_cache: true, state: present }
+
+- name: Routinator 安装
+  hosts: rpki
+  become: true
+  tasks:
+    - apt: { name: [curl, gnupg], update_cache: true }
+    - name: 加 NLnet Labs 源 (signed-by)
+      shell: |
+        curl -fsSL https://packages.nlnetlabs.nl/aptkey.asc | gpg --dearmor -o /usr/share/keyrings/nlnetlabs.gpg
+        echo "deb [signed-by=/usr/share/keyrings/nlnetlabs.gpg] https://packages.nlnetlabs.nl/linux/debian $(lsb_release -sc) main" > /etc/apt/sources.list.d/nlnetlabs.list
+      args: { creates: /etc/apt/sources.list.d/nlnetlabs.list }
+    - apt: { name: routinator, update_cache: true }
+    - name: 初始化 TAL(接受 RIR RPA)
+      command: routinator-init --accept-arin-rpa
+      args: { creates: /etc/routinator/tals }
+
+- name: NetFlow 采集器安装
+  hosts: netflow
+  become: true
+  tasks:
+    - apt: { name: [nfdump, pmacct], update_cache: true, state: present }

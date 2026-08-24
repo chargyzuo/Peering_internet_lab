@@ -1,0 +1,43 @@
+! ============================================================
+! 外部对端通用模板 —— FRR frr.conf
+! 适用：Transit-1/2、Eyeball-A/B/C、CDN-peer
+! 每台的 ASN / 邻居 / 宣告前缀 由 host_vars/<host>.yml 提供
+! ============================================================
+frr version 8.4
+frr defaults traditional
+hostname {{ inventory_hostname }}
+log syslog informational
+!
+{% for iface in peer_ifaces %}
+interface {{ iface.name }}
+ ip address {{ iface.ip }}
+!
+{% endfor %}
+{% if announce_prefixes is defined %}
+{% for p in announce_prefixes %}
+ip route {{ p }} Null0
+{% endfor %}
+{% endif %}
+!
+router bgp {{ peer_asn }}
+ bgp router-id {{ router_id }}
+{% for nb in ebgp_neighbors %}
+ neighbor {{ nb.ip }} remote-as {{ nb.remote_as }}
+{% if nb.description is defined %}
+ neighbor {{ nb.ip }} description {{ nb.description }}
+{% endif %}
+{% endfor %}
+ !
+ address-family ipv4 unicast
+{% for nb in ebgp_neighbors %}
+  neighbor {{ nb.ip }} activate
+{% endfor %}
+{% if announce_prefixes is defined %}
+{% for p in announce_prefixes %}
+  network {{ p }}
+{% endfor %}
+{% endif %}
+ exit-address-family
+!
+line vty
+!

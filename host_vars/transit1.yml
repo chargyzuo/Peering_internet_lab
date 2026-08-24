@@ -1,0 +1,11 @@
+# Transit-1 (AS64500) —— 上游，给 BR1 灌全表
+peer_asn: 64500
+router_id: "100.100.0.1"
+peer_ifaces:
+  - { name: eth1, ip: "REPLACE_TRANSIT1_LINK_IP/30" }   # ↔ BR1 (2.1 L5)
+ebgp_neighbors:
+  - { ip: "REPLACE_BR1_TRANSIT_IP", remote_as: 64496, description: "to-BR1" }
+# 灌全表：可用 RIPE RIS MRT dump 注入，或先宣告若干测试前缀
+announce_prefixes:
+  - "203.0.113.0/24"
+  - "198.51.100.0/24"

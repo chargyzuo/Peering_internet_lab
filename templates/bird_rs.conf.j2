@@ -1,0 +1,23 @@
+# ============================================================
+# BIRD2 —— IX Route-Server (AS65000) 配置（对应 2.1 §4.3）
+# RS 关键：不改 next-hop、不把自己 ASN 加进 AS-Path (rs client)
+# ============================================================
+router id {{ ix_rs_ip }};
+log syslog all;
+
+protocol device { scan time 10; }
+
+# 每个 IX 成员一条 eBGP，rs client 保持透明
+template bgp IXMEMBER {
+  local as {{ rs_asn }};
+  rs client;                 # Route-Server 模式：不改 next-hop、不插自身 ASN
+  ipv4 {
+    import all;
+    export all;
+  };
+}
+
+protocol bgp br1  from IXMEMBER { neighbor {{ ix_br1_ip }} as {{ my_asn }}; }
+protocol bgp br2  from IXMEMBER { neighbor {{ ix_br2_ip }} as {{ my_asn }}; }
+protocol bgp eyeb from IXMEMBER { neighbor REPLACE_IX_EYEBALLB_IP as {{ eyeballB_asn }}; }
+protocol bgp cdn  from IXMEMBER { neighbor REPLACE_IX_CDN_IP as {{ cdn_asn }}; }

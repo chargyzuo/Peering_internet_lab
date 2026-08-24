@@ -1,0 +1,12 @@
+default-lease-time 86400;
+max-lease-time 172800;
+authoritative;
+
+subnet {{ mgmt_net }} netmask {{ mgmt_mask }} {
+  option routers {{ mgmt_gw }};
+  option domain-name-servers {{ mgmt_dns }};
+}
+
+{% for h in dhcp_hosts %}
+host {{ h.name }} { hardware ethernet {{ h.mac }}; fixed-address {{ h.ip }}; }
+{% endfor %}
