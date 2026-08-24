@@ -8,12 +8,13 @@
 Peering_internet_lab/
 ├── ansible.cfg              # 关 host key 检查、指定 inventory
 ├── site.yml                 # 一键编排：01→02→03→04
-├── inventory/hosts.ini      # 按角色分组，IP=DHCP 固定分配
-├── group_vars/all.yml       # ★唯一事实源：AS/前缀/loopback/MAC-IP/IX/PNI/community
-├── host_vars/               # 各外部对端(ASN/邻居/宣告前缀)
-│   ├── transit1.yml transit2.yml
-│   ├── eyeballA.yml eyeballB.yml eyeballC.yml
-│   └── cdn.yml
+├── inventory/
+│   ├── hosts.ini            # 按角色分组，IP=DHCP 固定分配
+│   ├── group_vars/all.yml   # ★唯一事实源：AS/前缀/loopback/MAC-IP/IX/PNI/community
+│   └── host_vars/           # 各外部对端(ASN/邻居/宣告前缀)
+│       ├── transit1.yml transit2.yml
+│       ├── eyeballA.yml eyeballB.yml eyeballC.yml
+│       └── cdn.yml
 ├── templates/               # Jinja2 模板
 │   ├── dhcpd.conf.j2        # DHCP MAC→固定IP
 │   ├── frr_rr.conf.j2       # RR：IS-IS + iBGP-RR
