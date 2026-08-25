@@ -1,10 +1,13 @@
+{# slurm.json —— RFC 8416 本地例外文件。零出网,仅靠这里的 ROA 决定 ROV 三态。
+   数据源: group_vars/all.yml 的 roa_assertions。改 ROA 只动 all.yml,不动本模板。 #}
 {
   "slurmVersion": 1,
   "validationOutputFilters": { "prefixFilters": [], "bgpsecFilters": [] },
   "locallyAddedAssertions": {
     "prefixAssertions": [
-      { "asn": {{ my_asn }}, "prefix": "{{ my_prefix }}", "maxPrefixLength": 24,
-        "comment": "AS64496 合法宣告，maxLen 24 用于 TE 拆 /24" }
+{% for r in roa_assertions %}
+      { "asn": {{ r.asn }}, "prefix": "{{ r.prefix }}", "maxPrefixLength": {{ r.maxlen }}, "comment": "{{ r.comment }}" }{{ "," if not loop.last else "" }}
+{% endfor %}
     ],
     "bgpsecAssertions": []
   }

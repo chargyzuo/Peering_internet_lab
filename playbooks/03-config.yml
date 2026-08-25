@@ -40,15 +40,30 @@
     - name: reconfigure bird
       command: birdc configure
 
-- name: 下发 Routinator SLURM(本地 ROA)
+- name: 下发 Routinator SLURM(本地 ROA) —— 零出网，仅本地 ROA 演示 ROV 三态
   hosts: rpki
   become: true
   tasks:
-    - template: { src: ../templates/slurm.json.j2, dest: /etc/routinator/slurm.json }
-    - lineinfile:
+    - name: 下发 SLURM(本地 ROA/例外)
+      template: { src: ../templates/slurm.json.j2, dest: /etc/routinator/slurm.json }
+      notify: restart routinator
+    # 关键三行,让 server 零出网、只服务本地 ROA：
+    #  no-rir-tals=true  -> 不加载编译进二进制的 5 个 RIR TAL,不去拉全球 RPKI(2.6GB 省掉)
+    #  disable-rsync=true -> 关掉 rsync 回退(本机没装 rsync,避免每源等超时)
+    #  exceptions=[slurm] -> 把 SLURM 里的本地 ROA 作为唯一 VRP 来源
+    # rtr-listen -> RTR 协议监听,给 XRv9k BR 拉 VRP(rpki server 0.0.0.0:3323)
+    - name: routinator.conf 写入本地 ROA 运行参数(幂等)
+      lineinfile:
         path: /etc/routinator/routinator.conf
-        line: 'rtr-listen = ["0.0.0.0:3323"]'
+        regexp: "^{{ item.k }}\\s*="
+        line: "{{ item.k }} = {{ item.v }}"
         create: true
+      loop:
+        - { k: "no-rir-tals",  v: "true" }
+        - { k: "disable-rsync", v: "true" }
+        - { k: "exceptions",   v: '["/etc/routinator/slurm.json"]' }
+        - { k: "rtr-listen",   v: '["0.0.0.0:3323"]' }
+      loop_control: { label: "{{ item.k }}" }
       notify: restart routinator
   handlers:
     - name: restart routinator

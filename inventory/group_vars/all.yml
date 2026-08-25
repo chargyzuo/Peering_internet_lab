@@ -19,6 +19,24 @@ isis_area: "49.0001"
 rpki_rtr_host: 10.99.99.110
 rpki_rtr_port: 3323
 
+# ===== RPKI ROV 演示用本地 ROA(SLURM,零出网) =====
+# 三态由「这里的 ROA」×「各 peer 实际宣告的前缀/origin」共同决定：
+#   Valid    : 宣告前缀被某 ROA 覆盖,且 origin ASN 与 maxLength 都匹配
+#   Invalid  : 前缀被 ROA 覆盖,但 origin 错 或 掩码 > maxLength
+#   NotFound : 没有任何 ROA 覆盖该前缀
+# 下面每条 ROA 会渲染进 slurm.json 的 prefixAssertions。演示脚本见 04-verify / 2.1 §RPKI。
+roa_assertions:
+  # (1) 本 AS 合法前缀 → 自己宣告即 Valid;maxLen 24 允许 TE 拆 /24 仍 Valid
+  - { asn: 64496, prefix: "203.0.113.0/24", maxlen: 24,
+      comment: "AS64496 合法宣告 → Valid(演示正常态)" }
+  # (2) 给 Eyeball-A(64510) 的前缀发 ROA,origin 锁死 64510、maxLen 22。
+  #     若 Eyeball-C(64511) 劫持宣告同前缀 → Invalid(origin 错);
+  #     若有人宣告它的 /24(>22) → Invalid(超长)。二者任选其一演示 Invalid。
+  - { asn: 64510, prefix: "198.51.100.0/22", maxlen: 22,
+      comment: "ROA 属 AS64510 → 他人劫持/超长宣告即 Invalid" }
+  # (3) NotFound 无需 ROA：CDN(64521) 宣告的 192.0.2.0/24 不被任何 ROA 覆盖 → 天然 NotFound
+
+
 # ===== 管理网（2.1 §3.1 + 2.2 §二.1）=====
 mgmt_net: 10.99.99.0
 mgmt_mask: 255.255.255.0

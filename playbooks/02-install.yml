@@ -49,16 +49,12 @@
         echo "deb [signed-by=/usr/share/keyrings/nlnetlabs.gpg] https://packages.nlnetlabs.nl/linux/debian $(lsb_release -sc) main" > /etc/apt/sources.list.d/nlnetlabs.list
       args: { creates: /etc/apt/sources.list.d/nlnetlabs.list }
     - apt: { name: routinator, update_cache: true }
-    # Routinator >=0.9 已把 5 个 RIR 的 TAL(含 ARIN)编译进二进制、默认加载，
-    # 旧版的 `routinator-init/init --accept-arin-rpa` 在 0.15 已移除，无需再初始化 TAL。
-    # 首次拉取并验证 RPKI 数据，填充 server 实际读的缓存(/var/lib/routinator/rpki-cache)。
-    # 注意：必须带 -c 用包配置(否则 root 身份会去填 /root/.rpki-cache)，且以 routinator 用户跑
-    # 让缓存文件 owner 与 server 进程一致；update 可反复执行(增量)，靠 changed_when:false 保持幂等，
-    # 不用 creates: —— 三个子目录装包时就存在，用它当 guard 会导致此步被永久跳过。
-    - name: 首次拉取 RPKI 缓存(用包配置，填 server 实际读的缓存)
-      command: routinator -c /etc/routinator/routinator.conf update
-      become_user: routinator
-      changed_when: false
+    # 只装二进制，不在这里拉全球 RPKI。原因：
+    #  1) lab 全是私有 ASN/前缀，全球 RPKI 里没有它们的 ROA，拉回来 2.6GB 也只能判 NotFound，没用；
+    #  2) 首次全量 RRDP ~2.6GB、屏幕无进度,很像"卡住"，实为慢速下载。
+    # 本 lab 走"本地 ROA(SLURM) + --no-rir-tals"路线,零出网就能演示 ROV 三态,
+    # 全部在 03-config.yml 的 Routinator play 里配置(no-rir-tals / exceptions / rtr-listen)。
+    # Routinator 0.15 已无 init 子命令、无 --accept-arin-rpa,TAL 编译进二进制,本路线也不加载它们。
 
 - name: NetFlow 采集器安装
   hosts: netflow
