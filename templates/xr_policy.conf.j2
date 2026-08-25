@@ -11,7 +11,9 @@ community-set NO-TRANSIT    {{ my_asn }}:990  end-set
 ! ---- Transit：付费全表兜底，LP 最低 ----
 route-policy TRANSIT-IN
   if destination in BOGONS then drop endif
+{% if enable_rpki %}
   if validation-state is invalid then drop endif        ! RPKI ROV
+{% endif %}
   set community ({{ my_asn }}:100)
   set local-preference 80
   pass
@@ -26,7 +28,9 @@ end-policy
 ! ---- IX Peering：multilateral，LP 中 ----
 route-policy PEER-IN
   if destination in BOGONS then drop endif
+{% if enable_rpki %}
   if validation-state is invalid then drop endif
+{% endif %}
   if as-path passes-through '{{ transit1_asn }}' then drop endif   ! peer 带 transit ASN → 泄漏
   set community ({{ my_asn }}:150)
   set local-preference 150
@@ -41,7 +45,9 @@ end-policy
 ! ---- PNI：大流量私连，LP 最高 ----
 route-policy PNI-IN
   if destination in BOGONS then drop endif
+{% if enable_rpki %}
   if validation-state is invalid then drop endif
+{% endif %}
   set community ({{ my_asn }}:200)
   set local-preference 200
   pass

@@ -2,8 +2,8 @@
 peer_asn: 64510
 router_id: "100.110.0.1"
 peer_ifaces:
-  - { name: eth1, ip: "REPLACE_PNI_A_LINK_IP/30" }      # ↔ BR1 (2.1 L12)
+  - { name: eth1, ip: "10.12.0.2/30" }      # ↔ BR1 (2.1 L12)
 ebgp_neighbors:
-  - { ip: "REPLACE_BR1_PNI_IP", remote_as: 64496, description: "PNI-to-BR1" }
+  - { ip: "10.12.0.1", remote_as: 64496, description: "PNI-to-BR1" }
 announce_prefixes:
   - "100.120.0.0/16"      # Eyeball-A 用户网段(示例)

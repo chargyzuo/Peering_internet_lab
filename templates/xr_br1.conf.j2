@@ -8,6 +8,23 @@
 interface Loopback0
  ipv4 address {{ lo.br1 }} 255.255.255.255
 !
+! ---- 物理接口编址（基础业务）----
+! Gi0/0/0/0=Transit-1  Gi0/0/0/1=核心↔RR1  Gi0/0/0/2=核心↔RR2  Gi0/0/0/3=PNI(Eyeball-A)  Gi0/0/0/4=IX
+interface GigabitEthernet0/0/0/0
+ ipv4 address {{ br1_transit_ip }} 255.255.255.252
+!
+interface GigabitEthernet0/0/0/1
+ ipv4 address {{ core_links.br1_rr1.br }} 255.255.255.252
+!
+interface GigabitEthernet0/0/0/2
+ ipv4 address {{ core_links.br1_rr2.br }} 255.255.255.252
+!
+interface GigabitEthernet0/0/0/3
+ ipv4 address {{ br1_pni_ip }} 255.255.255.252
+!
+interface GigabitEthernet0/0/0/4
+ ipv4 address {{ ix_br1_ip }} 255.255.255.0
+!
 router isis CORE
  is-type level-2-only
  net {{ isis_area }}.0100.6425.5001.00
@@ -34,15 +51,19 @@ prefix-set BOGONS
   224.0.0.0/3 le 32
 end-set
 !
-! ---- RPKI ----
+! ---- RPKI ---- (enable_rpki=false 时整段跳过，基础业务不依赖 Routinator)
 router bgp {{ my_asn }}
+{% if enable_rpki %}
  rpki server {{ rpki_rtr_host }}
   transport tcp port {{ rpki_rtr_port }}
   refresh-time 120
  !
+{% endif %}
  bgp router-id {{ lo.br1 }}
  address-family ipv4 unicast
+{% if enable_rpki %}
   bgp origin-as validation enable
+{% endif %}
   network {{ my_prefix }}
  !
  ! ---- iBGP 到两台 RR ----

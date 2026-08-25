@@ -2,7 +2,7 @@
 peer_asn: 64520
 router_id: "100.120.0.254"
 peer_ifaces:
-  - { name: eth1, ip: "REPLACE_IX_EYEBALLB_IP/24" }     # IX 平面 (2.1 L10)
+  - { name: eth1, ip: "198.18.100.20/24" }     # IX 平面 (2.1 L10)
 ebgp_neighbors:
   - { ip: "{{ ix_rs_ip }}", remote_as: 65000, description: "to-IX-RS" }
 announce_prefixes:

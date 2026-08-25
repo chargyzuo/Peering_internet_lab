@@ -20,10 +20,12 @@ interface lo
  isis passive
 !
 interface eth1
+ ip address {{ (core_links.br1_rr1.rr if inventory_hostname == 'rr1' else core_links.br1_rr2.rr) }}/30
  ip router isis CORE
  isis network point-to-point
 !
 interface eth2
+ ip address {{ (core_links.br2_rr1.rr if inventory_hostname == 'rr1' else core_links.br2_rr2.rr) }}/30
  ip router isis CORE
  isis network point-to-point
 !

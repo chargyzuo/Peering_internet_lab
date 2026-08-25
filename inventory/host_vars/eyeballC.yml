@@ -2,9 +2,9 @@
 peer_asn: 64511
 router_id: "100.111.0.1"
 peer_ifaces:
-  - { name: eth1, ip: "REPLACE_PNI_C_LINK_IP/30" }      # ↔ BR2 (2.1 L13)
+  - { name: eth1, ip: "10.13.0.2/30" }      # ↔ BR2 (2.1 L13)
 ebgp_neighbors:
-  - { ip: "REPLACE_BR2_PNI_IP", remote_as: 64496, description: "PNI-to-BR2" }
+  - { ip: "10.13.0.1", remote_as: 64496, description: "PNI-to-BR2" }
 announce_prefixes:
   - "100.121.0.0/16"
 # 演示 hijack：临时改为宣告 {{ my_prefix }} 的一条更细 /24 且 origin 不符 → BR 判 Invalid

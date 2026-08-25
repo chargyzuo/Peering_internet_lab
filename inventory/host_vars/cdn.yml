@@ -2,7 +2,7 @@
 peer_asn: 64521
 router_id: "100.121.0.254"
 peer_ifaces:
-  - { name: eth1, ip: "REPLACE_IX_CDN_IP/24" }          # IX 平面 (2.1 L11)
+  - { name: eth1, ip: "198.18.100.21/24" }          # IX 平面 (2.1 L11)
 ebgp_neighbors:
   - { ip: "{{ ix_rs_ip }}", remote_as: 65000, description: "to-IX-RS" }
 announce_prefixes:

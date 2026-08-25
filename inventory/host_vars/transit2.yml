@@ -2,9 +2,9 @@
 peer_asn: 64501
 router_id: "100.100.0.2"
 peer_ifaces:
-  - { name: eth1, ip: "REPLACE_TRANSIT2_LINK_IP/30" }   # ↔ BR2 (2.1 L6)
+  - { name: eth1, ip: "10.5.0.6/30" }   # ↔ BR2 (2.1 L6)
 ebgp_neighbors:
-  - { ip: "REPLACE_BR2_TRANSIT_IP", remote_as: 64496, description: "to-BR2" }
+  - { ip: "10.5.0.5", remote_as: 64496, description: "to-BR2" }
 announce_prefixes:
   - "203.0.113.0/24"
   - "198.51.100.0/24"

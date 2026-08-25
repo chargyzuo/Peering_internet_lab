@@ -3,7 +3,12 @@
 
 # ===== AS / 前缀 =====
 my_asn: 64496
-my_prefix: "<你的 /20，见 2.1 §3.1 宣告前缀>"
+my_prefix: "100.64.0.0/20"        # AS64496 宣告前缀(拆 /24 做 TE);与 slurm ROA(1)对齐
+
+# ===== 阶段开关：先打通路由交换，暂不启用 RPKI ROV =====
+# false → XR 不配 `rpki server`、不做 origin-as validation、策略里跳过 validation-state 判断，
+#         eBGP 不依赖 Routinator 即可 up；等基础业务通了改 true 再叠加 RPKI。
+enable_rpki: false
 
 # ===== 核心 loopback（BR/RR），2.1 §3.1/§3.3 =====
 lo:
@@ -67,13 +72,27 @@ cdn_asn:      64521
 rs_asn:       65000
 
 # ===== eBGP 对接链路 IP（2.1 §3.1 / 逐链路接线表 L5/L6/L12/L13）=====
-# REPLACE_* 按 2.1 §3.1 的 /30、/24 网段填成对端与本端地址
-transit_as64500_peer: "REPLACE_TRANSIT1_PEER_IP"    # BR1↔Transit-1 对端 (L5, /30)
-transit_as64501_peer: "REPLACE_TRANSIT2_PEER_IP"    # BR2↔Transit-2 对端 (L6, /30)
-pni_eyeballA_peer:    "REPLACE_PNI_A_PEER_IP"        # BR1↔Eyeball-A 对端 (L12, /30)
-pni_eyeballC_peer:    "REPLACE_PNI_C_PEER_IP"        # BR2↔Eyeball-C 对端 (L13, /30)
+# 基础业务打通用的 10.x/198.18.x 接口地址,自洽即可,后续可按 2.1 §3.1 调整。
+transit_as64500_peer: "10.5.0.2"      # BR1↔Transit-1 对端=T1 (net 10.5.0.0/30, BR1=.1 T1=.2)
+transit_as64501_peer: "10.5.0.6"      # BR2↔Transit-2 对端=T2 (net 10.5.0.4/30, BR2=.5 T2=.6)
+pni_eyeballA_peer:    "10.12.0.2"     # BR1↔Eyeball-A 对端=A (net 10.12.0.0/30, BR1=.1 A=.2)
+pni_eyeballC_peer:    "10.13.0.2"     # BR2↔Eyeball-C 对端=C (net 10.13.0.0/30, BR2=.1 C=.2)
+
+# BR 边界口本端 IP(XR 上配在物理口;对端=上面各 *_peer)
+br1_transit_ip: "10.5.0.1"            # BR1 Gi0/0/0/0 ↔ Transit-1
+br2_transit_ip: "10.5.0.5"            # BR2 Gi0/0/0/0 ↔ Transit-2
+br1_pni_ip:     "10.12.0.1"           # BR1 Gi0/0/0/3 ↔ Eyeball-A PNI
+br2_pni_ip:     "10.13.0.1"           # BR2 Gi0/0/0/3 ↔ Eyeball-C PNI
+
+# 核心 IS-IS /30 点对点:BR Gi0/0/0/1→RR1、Gi0/0/0/2→RR2 ; RR eth1→BR1、eth2→BR2
+core_links:
+  br1_rr1: { br: "10.0.1.1",  rr: "10.0.1.2"  }   # net 10.0.1.0/30
+  br1_rr2: { br: "10.0.1.5",  rr: "10.0.1.6"  }   # net 10.0.1.4/30
+  br2_rr1: { br: "10.0.1.9",  rr: "10.0.1.10" }   # net 10.0.1.8/30
+  br2_rr2: { br: "10.0.1.13", rr: "10.0.1.14" }   # net 10.0.1.12/30
 
 # ===== IX peering LAN（2.1 §3.1: RS=.1 BR1=.10 BR2=.11 EyeballB=.20 CDN=.21）=====
-ix_rs_ip:  "REPLACE_IX_RS_IP"      # Route-Server (.1)
-ix_br1_ip: "REPLACE_IX_BR1_IP"     # BR1 in IX (.10)
-ix_br2_ip: "REPLACE_IX_BR2_IP"     # BR2 in IX (.11)
+# 用 RFC2544 基准测试段 198.18.100.0/24 当 IX 平面,避免与业务/管理网冲突
+ix_rs_ip:  "198.18.100.1"      # Route-Server (.1)
+ix_br1_ip: "198.18.100.10"     # BR1 in IX (.10)
+ix_br2_ip: "198.18.100.11"     # BR2 in IX (.11)

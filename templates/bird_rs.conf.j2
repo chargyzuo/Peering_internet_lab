@@ -19,5 +19,5 @@ template bgp IXMEMBER {
 
 protocol bgp br1  from IXMEMBER { neighbor {{ ix_br1_ip }} as {{ my_asn }}; }
 protocol bgp br2  from IXMEMBER { neighbor {{ ix_br2_ip }} as {{ my_asn }}; }
-protocol bgp eyeb from IXMEMBER { neighbor REPLACE_IX_EYEBALLB_IP as {{ eyeballB_asn }}; }
-protocol bgp cdn  from IXMEMBER { neighbor REPLACE_IX_CDN_IP as {{ cdn_asn }}; }
+protocol bgp eyeb from IXMEMBER { neighbor 198.18.100.20 as {{ eyeballB_asn }}; }
+protocol bgp cdn  from IXMEMBER { neighbor 198.18.100.21 as {{ cdn_asn }}; }
